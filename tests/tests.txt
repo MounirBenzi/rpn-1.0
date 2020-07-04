@@ -1,0 +1,160 @@
+# Tests for rpn.exe
+# =================
+
+.. test: Test --version
+
+    $ ./rpn.exe --version
+    1.0
+
+.. test: Test --usage
+
+    $ ./rpn.exe --usage
+    ./rpn.exe --usage
+    ./rpn.exe --version
+    ./rpn.exe TOKENS...
+
+.. test: Test no arguments
+
+    $ ./rpn.exe
+    (stderr): ./rpn.exe --usage
+    (stderr): ./rpn.exe --version
+    (stderr): ./rpn.exe TOKENS...
+    (return): 1
+
+.. test: Test one argument
+
+    $ ./rpn.exe 1
+    1
+    $ ./rpn.exe 01
+    1
+    $ ./rpn.exe -1
+    -1
+    $ ./rpn.exe 123
+    123
+    $ ./rpn.exe 001
+    1
+    $ ./rpn.exe -12
+    -12
+
+.. test: Test bad token
+
+    $ ./rpn.exe foobar
+    (stderr): Invalid token "foobar"
+    (return): 1
+    $ ./rpn.exe 12bar
+    (stderr): Invalid token "12bar"
+    (return): 1
+    $ ./rpn.exe --1
+    (stderr): Invalid token "--1"
+    (return): 1
+    $ ./rpn.exe +1
+    (stderr): Invalid token "+1"
+    (return): 1
+    $ ./rpn.exe 1.0
+    (stderr): Invalid token "1.0"
+    (return): 1
+
+.. test: Test binary operations
+
+    $ ./rpn.exe 2 3 +
+    5
+    $ ./rpn.exe 2 3 x
+    6
+    $ ./rpn.exe 2 3 -
+    -1
+    $ ./rpn.exe 6 3 /
+    2
+
+.. test: Test combined operations
+
+    $ ./rpn.exe 1 2 3 4 + + +
+    10
+    $ ./rpn.exe 1 2 3 4 - - -
+    -2
+    $ ./rpn.exe 1 2 - 3 4 - -
+    0
+    $ ./rpn.exe 1 2 + 3 x
+    9
+    $ ./rpn.exe 1 2 3 + x
+    5
+    $ ./rpn.exe 12 2 / 12 2 / x
+    36
+
+.. test: Stack overflow
+
+    $ ./rpn.exe 1 2 3 4 5 6 7 8 9 10 + + + + + + + + +
+    55
+    $ ./rpn.exe 1 2 3 + + 4 5 6 7 8 9 10 + + + + + + +
+    55
+    $ ./rpn.exe 1 2 3 + + + 4 5 6 7 8 9 10 + + + + + +
+    (stderr): Stack underflow at "+"
+    (return): 1
+    $ ./rpn.exe 1 2 3 4 5 6 7 8 9 10 11 + + + + + + + + + +
+    (stderr): Stack overflow at "11"
+    (return): 1
+    $ ./rpn.exe 1 2 3 4 5 6 7 8 9 10 + 11 + + + + + + + + +
+    66
+    $ ./rpn.exe 1 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12 + 13 + 14 + 15 + 16 + 17 + 18 + 19 + 20 +
+    210
+
+.. test: Division
+
+    $ ./rpn.exe 100 10 /
+    10
+    $ ./rpn.exe -1 -1 /
+    1
+    $ ./rpn.exe 100 7 /
+    (stderr): 100 is not divisible by 7
+    (return): 1
+    $ ./rpn.exe 10 3 /
+    (stderr): 10 is not divisible by 3
+    (return): 1
+    $ ./rpn.exe 2 0 /
+    (stderr): Zero division in 2 / 0
+    (return): 1
+    $ ./rpn.exe 10 4 4 - /
+    (stderr): Zero division in 10 / 0
+    (return): 1
+
+.. test: Overflow
+
+    $ ./rpn.exe 2147483647
+    2147483647
+    $ ./rpn.exe 2147483648
+    (stderr): Integer overflow at token "2147483648"
+    (return): 1
+    $ ./rpn.exe -2147483648
+    -2147483648
+    $ ./rpn.exe -2147483649
+    (stderr): Integer overflow at token "-2147483649"
+    (return): 1
+    $ ./rpn.exe 2147483647 1 -
+    2147483646
+    $ ./rpn.exe 2147483647 -1 +
+    2147483646
+    $ ./rpn.exe 2147483647 1 +
+    (stderr): Integer overflow in 2147483647 + 1
+    (return): 1
+    $ ./rpn.exe 2147483647 -1 -
+    (stderr): Integer overflow in 2147483647 - -1
+    (return): 1
+    $ ./rpn.exe -2147483647 1 -
+    -2147483648
+    $ ./rpn.exe -2147483648 1 -
+    (stderr): Integer overflow in -2147483648 - 1
+    (return): 1
+    $ ./rpn.exe -2147483648 -1 /
+    (stderr): Integer overflow in -2147483648 / -1
+    (return): 1
+    $ ./rpn.exe -2147483648 -1 x
+    (stderr): Integer overflow in -2147483648 x -1
+    (return): 1
+    $ ./rpn.exe -2147483647 -1 x
+    2147483647
+    $ ./rpn.exe 1000 123456 x
+    123456000
+    $ ./rpn.exe 1000 1234567 x
+    1234567000
+    $ ./rpn.exe 1000 12345678 x
+    (stderr): Integer overflow in 1000 x 12345678
+    (return): 1
